@@ -1,0 +1,1242 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>호르무즈 봉쇄 — 코스피 긴급 분석</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;700;900&family=JetBrains+Mono:wght@400;700&family=Noto+Sans+KR:wght@300;400;700&display=swap');
+
+  :root {
+    --bg: #0a0b0f;
+    --surface: #111318;
+    --surface2: #181c24;
+    --border: #1f2433;
+    --accent-red: #ff3b3b;
+    --accent-green: #00e87a;
+    --accent-amber: #f5a623;
+    --accent-blue: #3b82f6;
+    --accent-cyan: #06b6d4;
+    --text-primary: #e8ecf4;
+    --text-secondary: #8b95a8;
+    --text-muted: #4a5568;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text-primary);
+    font-family: 'Noto Sans KR', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Noise overlay */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 1000;
+    opacity: 0.35;
+  }
+
+  .header {
+    border-bottom: 1px solid var(--border);
+    padding: 24px 40px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: rgba(10,11,15,0.95);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    backdrop-filter: blur(12px);
+  }
+
+  .header-left {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .alert-dot {
+    width: 10px;
+    height: 10px;
+    background: var(--accent-red);
+    border-radius: 50%;
+    animation: pulse 1.5s infinite;
+    box-shadow: 0 0 12px var(--accent-red);
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.6; transform: scale(1.3); }
+  }
+
+  .header-title {
+    font-family: 'Noto Serif KR', serif;
+    font-size: 18px;
+    font-weight: 700;
+    letter-spacing: -0.5px;
+  }
+
+  .header-subtitle {
+    font-size: 12px;
+    color: var(--text-muted);
+    font-family: 'JetBrains Mono', monospace;
+    margin-top: 2px;
+  }
+
+  .header-badge {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    padding: 4px 12px;
+    border: 1px solid var(--accent-amber);
+    color: var(--accent-amber);
+    border-radius: 2px;
+    letter-spacing: 1px;
+  }
+
+  .main {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 40px;
+  }
+
+  /* Hero section */
+  .hero {
+    margin-bottom: 48px;
+    position: relative;
+    overflow: hidden;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    background: var(--surface);
+    padding: 48px;
+  }
+
+  .hero::before {
+    content: '';
+    position: absolute;
+    top: -100px;
+    right: -100px;
+    width: 400px;
+    height: 400px;
+    background: radial-gradient(circle, rgba(255,59,59,0.08) 0%, transparent 70%);
+    pointer-events: none;
+  }
+
+  .hero-eyebrow {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 3px;
+    color: var(--accent-red);
+    text-transform: uppercase;
+    margin-bottom: 16px;
+  }
+
+  .hero-headline {
+    font-family: 'Noto Serif KR', serif;
+    font-size: 48px;
+    font-weight: 900;
+    line-height: 1.1;
+    letter-spacing: -2px;
+    margin-bottom: 20px;
+  }
+
+  .hero-headline span {
+    color: var(--accent-red);
+  }
+
+  .hero-desc {
+    font-size: 15px;
+    color: var(--text-secondary);
+    line-height: 1.7;
+    max-width: 600px;
+  }
+
+  .hero-stats {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1px;
+    margin-top: 40px;
+    background: var(--border);
+    border: 1px solid var(--border);
+  }
+
+  .hero-stat {
+    background: var(--surface);
+    padding: 20px 24px;
+  }
+
+  .hero-stat-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 2px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+
+  .hero-stat-value {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 28px;
+    font-weight: 700;
+  }
+
+  .hero-stat-sub {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-top: 4px;
+  }
+
+  .red { color: var(--accent-red); }
+  .green { color: var(--accent-green); }
+  .amber { color: var(--accent-amber); }
+  .blue { color: var(--accent-blue); }
+  .cyan { color: var(--accent-cyan); }
+
+  /* Section */
+  .section-title {
+    font-family: 'Noto Serif KR', serif;
+    font-size: 22px;
+    font-weight: 700;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    letter-spacing: -0.5px;
+  }
+
+  .section-title::before {
+    content: '';
+    display: block;
+    width: 3px;
+    height: 22px;
+    background: var(--accent-amber);
+    border-radius: 1px;
+  }
+
+  /* Chart-like timeline */
+  .timeline {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 2px;
+    margin-bottom: 48px;
+    background: var(--border);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+
+  .timeline-day {
+    background: var(--surface);
+    padding: 28px 24px;
+    position: relative;
+    overflow: hidden;
+    transition: background 0.2s;
+  }
+
+  .timeline-day::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+  }
+
+  .timeline-day.down::after { background: var(--accent-red); }
+  .timeline-day.up::after { background: var(--accent-green); }
+  .timeline-day.flat::after { background: var(--text-muted); }
+
+  .timeline-day:hover { background: var(--surface2); }
+
+  .day-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--text-muted);
+    letter-spacing: 1px;
+    margin-bottom: 6px;
+  }
+
+  .day-date {
+    font-family: 'Noto Serif KR', serif;
+    font-size: 20px;
+    font-weight: 700;
+    margin-bottom: 12px;
+  }
+
+  .day-change {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 36px;
+    font-weight: 700;
+    line-height: 1;
+    margin-bottom: 8px;
+  }
+
+  .day-close {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    color: var(--text-secondary);
+    margin-bottom: 16px;
+  }
+
+  .day-event {
+    font-size: 11px;
+    color: var(--text-secondary);
+    line-height: 1.5;
+    border-top: 1px solid var(--border);
+    padding-top: 12px;
+  }
+
+  .day-badge {
+    display: inline-block;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    padding: 2px 8px;
+    border-radius: 2px;
+    letter-spacing: 1px;
+    margin-bottom: 8px;
+  }
+
+  .badge-record { background: rgba(255,59,59,0.15); color: var(--accent-red); border: 1px solid rgba(255,59,59,0.3); }
+  .badge-rebound { background: rgba(0,232,122,0.1); color: var(--accent-green); border: 1px solid rgba(0,232,122,0.3); }
+  .badge-circuit { background: rgba(245,166,35,0.1); color: var(--accent-amber); border: 1px solid rgba(245,166,35,0.3); }
+  .badge-stable { background: rgba(107,114,128,0.1); color: var(--text-muted); border: 1px solid var(--border); }
+
+  /* Sector grid */
+  .sector-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 2px;
+    margin-bottom: 48px;
+    background: var(--border);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+
+  .sector-card {
+    background: var(--surface);
+    padding: 24px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .sector-card:hover { background: var(--surface2); }
+
+  .sector-icon {
+    font-size: 24px;
+    margin-bottom: 12px;
+  }
+
+  .sector-name {
+    font-family: 'Noto Serif KR', serif;
+    font-size: 16px;
+    font-weight: 700;
+    margin-bottom: 4px;
+  }
+
+  .sector-direction {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 1px;
+    margin-bottom: 12px;
+  }
+
+  .sector-bar-wrap {
+    height: 3px;
+    background: var(--border);
+    border-radius: 2px;
+    margin-bottom: 12px;
+    overflow: hidden;
+  }
+
+  .sector-bar {
+    height: 100%;
+    border-radius: 2px;
+    transition: width 1s ease;
+  }
+
+  .sector-stocks {
+    font-size: 11px;
+    color: var(--text-secondary);
+    line-height: 1.6;
+  }
+
+  .sector-stocks strong {
+    color: var(--text-primary);
+    font-weight: 700;
+  }
+
+  .sector-momentum {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 20px;
+    font-weight: 700;
+  }
+
+  /* Bar chart */
+  .bar-chart {
+    margin-bottom: 48px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 32px;
+  }
+
+  .bar-row {
+    display: flex;
+    align-items: center;
+    margin-bottom: 14px;
+    gap: 12px;
+  }
+
+  .bar-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--text-secondary);
+    width: 160px;
+    flex-shrink: 0;
+    text-align: right;
+  }
+
+  .bar-track {
+    flex: 1;
+    height: 20px;
+    background: var(--surface2);
+    border-radius: 2px;
+    overflow: hidden;
+    position: relative;
+  }
+
+  .bar-fill {
+    height: 100%;
+    border-radius: 2px;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    padding-right: 8px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    font-weight: 700;
+    color: rgba(0,0,0,0.7);
+    min-width: 40px;
+    transition: width 1.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  }
+
+  /* Strategy cards */
+  .strategy-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 2px;
+    margin-bottom: 48px;
+    background: var(--border);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+
+  .strategy-card {
+    background: var(--surface);
+    padding: 32px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .strategy-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 3px;
+    height: 100%;
+  }
+
+  .strategy-card.attack::before { background: var(--accent-green); }
+  .strategy-card.defend::before { background: var(--accent-amber); }
+  .strategy-card.watch::before { background: var(--accent-blue); }
+  .strategy-card.avoid::before { background: var(--accent-red); }
+
+  .strategy-tag {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-bottom: 12px;
+    padding-left: 12px;
+  }
+
+  .strategy-title {
+    font-family: 'Noto Serif KR', serif;
+    font-size: 18px;
+    font-weight: 700;
+    margin-bottom: 16px;
+    padding-left: 12px;
+    line-height: 1.4;
+  }
+
+  .strategy-items {
+    padding-left: 12px;
+  }
+
+  .strategy-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    margin-bottom: 10px;
+    font-size: 13px;
+    line-height: 1.5;
+    color: var(--text-secondary);
+  }
+
+  .strategy-item::before {
+    content: '›';
+    flex-shrink: 0;
+    margin-top: 1px;
+    font-weight: 700;
+  }
+
+  .strategy-card.attack .strategy-item::before { color: var(--accent-green); }
+  .strategy-card.defend .strategy-item::before { color: var(--accent-amber); }
+  .strategy-card.watch .strategy-item::before { color: var(--accent-blue); }
+  .strategy-card.avoid .strategy-item::before { color: var(--accent-red); }
+
+  /* Scenarios */
+  .scenario-block {
+    margin-bottom: 48px;
+  }
+
+  .scenario-tabs {
+    display: flex;
+    gap: 2px;
+    margin-bottom: 2px;
+    background: var(--border);
+    padding: 2px;
+    border-radius: 4px 4px 0 0;
+    overflow: hidden;
+  }
+
+  .scenario-tab {
+    flex: 1;
+    padding: 12px 16px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 1px;
+    text-align: center;
+    cursor: pointer;
+    border: none;
+    background: var(--surface);
+    color: var(--text-muted);
+    transition: all 0.2s;
+  }
+
+  .scenario-tab.active {
+    background: var(--surface2);
+    color: var(--text-primary);
+    font-weight: 700;
+  }
+
+  .scenario-tab.scenario-a.active { color: var(--accent-green); border-top: 2px solid var(--accent-green); }
+  .scenario-tab.scenario-b.active { color: var(--accent-amber); border-top: 2px solid var(--accent-amber); }
+  .scenario-tab.scenario-c.active { color: var(--accent-red); border-top: 2px solid var(--accent-red); }
+
+  .scenario-content {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-top: none;
+    border-radius: 0 0 4px 4px;
+    padding: 32px;
+    display: none;
+  }
+
+  .scenario-content.active { display: block; }
+
+  .scenario-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: 20px;
+  }
+
+  .scenario-name {
+    font-family: 'Noto Serif KR', serif;
+    font-size: 22px;
+    font-weight: 700;
+    margin-bottom: 4px;
+  }
+
+  .scenario-prob {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--text-secondary);
+  }
+
+  .scenario-range {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 32px;
+    font-weight: 700;
+    text-align: right;
+  }
+
+  .scenario-range-label {
+    font-size: 11px;
+    color: var(--text-muted);
+    text-align: right;
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  .scenario-desc {
+    font-size: 13px;
+    color: var(--text-secondary);
+    line-height: 1.7;
+    margin-bottom: 20px;
+    border-left: 2px solid var(--border);
+    padding-left: 16px;
+  }
+
+  .scenario-triggers {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+
+  .trigger-box {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    padding: 16px;
+    border-radius: 2px;
+  }
+
+  .trigger-title {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 2px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+
+  .trigger-item {
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin-bottom: 4px;
+    display: flex;
+    gap: 6px;
+    line-height: 1.4;
+  }
+
+  .trigger-item::before { content: '·'; color: var(--accent-amber); flex-shrink: 0; }
+
+  /* Key variables monitor */
+  .monitor-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 2px;
+    margin-bottom: 48px;
+    background: var(--border);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+
+  .monitor-cell {
+    background: var(--surface);
+    padding: 20px 16px;
+    text-align: center;
+  }
+
+  .monitor-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 2px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+
+  .monitor-value {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 22px;
+    font-weight: 700;
+    margin-bottom: 4px;
+  }
+
+  .monitor-change {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+  }
+
+  /* Disclaimer */
+  .disclaimer {
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 20px 24px;
+    background: var(--surface);
+    margin-top: 48px;
+  }
+
+  .disclaimer-title {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 2px;
+    color: var(--accent-amber);
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+
+  .disclaimer-text {
+    font-size: 11px;
+    color: var(--text-muted);
+    line-height: 1.6;
+  }
+
+  /* divider */
+  .divider {
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 48px 0;
+  }
+
+  /* Responsive */
+  @media (max-width: 900px) {
+    .main { padding: 20px; }
+    .timeline { grid-template-columns: repeat(2, 1fr); }
+    .sector-grid { grid-template-columns: 1fr; }
+    .strategy-grid { grid-template-columns: 1fr; }
+    .monitor-grid { grid-template-columns: repeat(3, 1fr); }
+    .hero-stats { grid-template-columns: repeat(2, 1fr); }
+    .hero-headline { font-size: 32px; }
+    .scenario-triggers { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<header class="header">
+  <div class="header-left">
+    <div class="alert-dot"></div>
+    <div>
+      <div class="header-title">호르무즈 봉쇄 × 코스피 긴급 분석</div>
+      <div class="header-subtitle">2026.03.03 — 2026.03.06 실데이터 기반 | 3/9~3/13 대응전략</div>
+    </div>
+  </div>
+  <div class="header-badge">⚠ GEOPOLITICAL CRISIS</div>
+</header>
+
+<main class="main">
+
+  <!-- Hero -->
+  <section class="hero">
+    <div class="hero-eyebrow">CRISIS BRIEFING · MARCH 2026</div>
+    <h1 class="hero-headline">역대 최대 낙폭·상승폭이<br><span>단 4일 만에</span> 나왔다</h1>
+    <p class="hero-desc">
+      2026년 2월 28일 미국·이스라엘의 이란 공습, 호르무즈 해협 사실상 봉쇄 선언.
+      코스피는 3/3~3/4 이틀에 걸쳐 역대 최대 하락폭을 연달아 경신한 뒤,
+      3/5 역대 최대 단일일 반등을 기록했다. 4일 누적 등락은 '패닉 → 회복 → 불확실성 지속' 구조다.
+    </p>
+    <div class="hero-stats">
+      <div class="hero-stat">
+        <div class="hero-stat-label">3/4 단일일 최대낙폭</div>
+        <div class="hero-stat-value red">-12.06%</div>
+        <div class="hero-stat-sub">역대 최대 낙폭 기록 경신</div>
+      </div>
+      <div class="hero-stat">
+        <div class="hero-stat-label">3/5 단일일 최대반등</div>
+        <div class="hero-stat-value green">+9.63%</div>
+        <div class="hero-stat-sub">역대 최대 상승폭 기록</div>
+      </div>
+      <div class="hero-stat">
+        <div class="hero-stat-label">이틀 누적 하락</div>
+        <div class="hero-stat-value red">~-19%</div>
+        <div class="hero-stat-sub">5,584pt (3/6 종가)</div>
+      </div>
+      <div class="hero-stat">
+        <div class="hero-stat-label">3/3 해협 물동량</div>
+        <div class="hero-stat-value amber">-80%</div>
+        <div class="hero-stat-sub">평시 대비, 한국해양진흥공사</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Timeline -->
+  <div class="section-title">4일간 일지 — 실데이터</div>
+  <div class="timeline">
+    <div class="timeline-day down">
+      <div class="day-label">DAY 01 · MON</div>
+      <div class="day-date">3월 3일</div>
+      <div class="day-badge badge-record">역대 최대 낙폭 (당시)</div>
+      <div class="day-change red">-7.24%</div>
+      <div class="day-close">종가 5,791.91 / -452pt</div>
+      <div class="day-event">
+        미·이란 전쟁 충격 첫 반영. 코스피 6,000선 붕괴.
+        외국인·기관 5조+ 순매도. 개인 5.8조 순매수.
+        <strong>방산주 (한화에어로·한화시스템 등) 상승 이탈.</strong>
+        매도 사이드카 발동. 신용잔고 역대 최고 32.8조 확인.
+      </div>
+    </div>
+    <div class="timeline-day down">
+      <div class="day-label">DAY 02 · TUE</div>
+      <div class="day-date">3월 4일</div>
+      <div class="day-badge badge-circuit">서킷브레이커 발동</div>
+      <div class="day-change red">-12.06%</div>
+      <div class="day-close">종가 5,093.54 / 역대 최대낙폭</div>
+      <div class="day-event">
+        호르무즈 해협 봉쇄 현실화 + IRGC 선박 미사일 공격.
+        코스피·코스닥 동시 서킷브레이커. 시총 377조 증발.
+        삼성전자 -10%, SK하이닉스 -11%.
+        한투證 신용매수 일시 중단. <strong>VLCC 운임 3.3배 급등.</strong>
+      </div>
+    </div>
+    <div class="timeline-day up">
+      <div class="day-label">DAY 03 · WED</div>
+      <div class="day-date">3월 5일</div>
+      <div class="day-badge badge-rebound">역대 최대 단일일 반등</div>
+      <div class="day-change green">+9.63%</div>
+      <div class="day-close">종가 5,584 / 역대 최대 상승폭</div>
+      <div class="day-event">
+        유가 80달러 돌파 후 소폭 하락 전환.
+        트럼프 "미 해군 호위" 발언 + DFC 보험 제공 지시.
+        코스닥 매수 사이드카 발동. S-Oil 영업이익 상향.
+        <strong>정유·에너지 반등, 반도체 일부 회복.</strong>
+      </div>
+    </div>
+    <div class="timeline-day flat">
+      <div class="day-label">DAY 04 · THU</div>
+      <div class="day-date">3월 6일</div>
+      <div class="day-badge badge-stable">강보합 마감</div>
+      <div class="day-change" style="color: var(--text-secondary)">+0.02%</div>
+      <div class="day-close">종가 5,584.84 / 불확실성 지속</div>
+      <div class="day-event">
+        UAE 긴급 원유 도입 협의. 미국, 인도에 러시아산 원유 30일 허용.
+        코스닥 이틀 연속 매수 사이드카.
+        <strong>두산에너빌리티·한화에어로 강세</strong>, 반도체·금융 약세.
+        외국인·기관 순매도 지속.
+      </div>
+    </div>
+  </div>
+
+  <!-- Monitor -->
+  <div class="section-title">핵심 변수 현황 (3/6 기준)</div>
+  <div class="monitor-grid">
+    <div class="monitor-cell">
+      <div class="monitor-label">WTI 원유</div>
+      <div class="monitor-value amber">~$80</div>
+      <div class="monitor-change amber">▲ 40% (연초比)</div>
+    </div>
+    <div class="monitor-cell">
+      <div class="monitor-label">VLCC 운임</div>
+      <div class="monitor-value amber">3.3배↑</div>
+      <div class="monitor-change" style="color:var(--text-muted)">2월 13일 대비</div>
+    </div>
+    <div class="monitor-cell">
+      <div class="monitor-label">해협 물동량</div>
+      <div class="monitor-value red">-80%</div>
+      <div class="monitor-change" style="color:var(--text-muted)">3/3 기준 평시比</div>
+    </div>
+    <div class="monitor-cell">
+      <div class="monitor-label">코스피 신용잔고</div>
+      <div class="monitor-value red">32.8조</div>
+      <div class="monitor-change red">역대 최고</div>
+    </div>
+    <div class="monitor-cell">
+      <div class="monitor-label">한국 비축유</div>
+      <div class="monitor-value green">208일분</div>
+      <div class="monitor-change green">민관 합산 1.95억배럴</div>
+    </div>
+  </div>
+
+  <!-- Sector performance -->
+  <div class="section-title">섹터별 4일 흐름 분석</div>
+  <div class="sector-grid">
+
+    <div class="sector-card">
+      <div class="sector-icon">🛢️</div>
+      <div class="sector-name">정유·석유화학</div>
+      <div class="sector-direction amber">3/3~4 하락 → 3/5~6 급반등</div>
+      <div class="sector-bar-wrap">
+        <div class="sector-bar" style="width:70%; background: linear-gradient(90deg, #f5a623, #ff8c00);"></div>
+      </div>
+      <div class="sector-stocks">
+        <strong>에스오일·SK이노베이션·GS칼텍스</strong><br>
+        단기 원유 조달 불안 → 재고평가이익 기대 반등.<br>
+        S-Oil 2026~27 영업이익 추정치 상향. 정제마진 개선 예상.<br>
+        <span class="amber">유가 지속 시 최대 수혜 섹터</span>
+      </div>
+      <div class="sector-momentum amber">↑↑</div>
+    </div>
+
+    <div class="sector-card">
+      <div class="sector-icon">🛡️</div>
+      <div class="sector-name">방산</div>
+      <div class="sector-direction green">전 기간 상승 (시장 역행)</div>
+      <div class="sector-bar-wrap">
+        <div class="sector-bar" style="width:90%; background: linear-gradient(90deg, #00e87a, #00c060);"></div>
+      </div>
+      <div class="sector-stocks">
+        <strong>한화에어로스페이스, 한화시스템, LIG넥스원, 현대로템</strong><br>
+        UAE 天궁-II 실전 배치 명중률 입증. 3/6에도 한화에어로 +4.49%.<br>
+        중동 전선 확대 → 수출 수요 기대. 3/3 폭락장에서도 강세.<br>
+        <span class="green">4일간 유일한 지속 상승 섹터</span>
+      </div>
+      <div class="sector-momentum green">↑↑↑</div>
+    </div>
+
+    <div class="sector-card">
+      <div class="sector-icon">⚓</div>
+      <div class="sector-name">해운·물류</div>
+      <div class="sector-direction amber">운임 급등 → 주가 혼조</div>
+      <div class="sector-bar-wrap">
+        <div class="sector-bar" style="width:55%; background: linear-gradient(90deg, #f5a623, #e6950d);"></div>
+      </div>
+      <div class="sector-stocks">
+        <strong>HMM, 팬오션, 현대글로비스</strong><br>
+        중동~아시아 VLCC 운임 3.3배 급등 (단기 수혜).<br>
+        우회 노선 비용·보험료 폭등으로 순이익 영향 불투명.<br>
+        HMM 두바이 정박 중. 현대글로비스 대체항로 검토 중.
+      </div>
+      <div class="sector-momentum amber">↑?</div>
+    </div>
+
+    <div class="sector-card">
+      <div class="sector-icon">💻</div>
+      <div class="sector-name">반도체·IT</div>
+      <div class="sector-direction red">4일 모두 약세 (코스피 핵심 하락동인)</div>
+      <div class="sector-bar-wrap">
+        <div class="sector-bar" style="width:20%; background: var(--accent-red);"></div>
+      </div>
+      <div class="sector-stocks">
+        <strong>삼성전자, SK하이닉스, SK스퀘어</strong><br>
+        3/4: 삼성전자 -10% (20만원 붕괴), SK하이닉스 -11%.<br>
+        에너지 원가 상승 → 생산비 증가 우려. 반도체 소재·화학 원가↑.<br>
+        <span class="red">기술주 집중 구조 = 충격 증폭</span>
+      </div>
+      <div class="sector-momentum red">↓↓</div>
+    </div>
+
+    <div class="sector-card">
+      <div class="sector-icon">✈️</div>
+      <div class="sector-name">항공</div>
+      <div class="sector-direction red">전 기간 약세</div>
+      <div class="sector-bar-wrap">
+        <div class="sector-bar" style="width:15%; background: var(--accent-red);"></div>
+      </div>
+      <div class="sector-stocks">
+        <strong>대한항공, 아시아나, 제주항공</strong><br>
+        항공유 = 최대 운영비용. 유가 $1 상승 시 연간 수백억 추가 부담.<br>
+        중동 노선 운항 불확실성 + 유류할증료 인상 압력.<br>
+        <span class="red">고유가 직격탄 섹터</span>
+      </div>
+      <div class="sector-momentum red">↓↓</div>
+    </div>
+
+    <div class="sector-card">
+      <div class="sector-icon">🔥</div>
+      <div class="sector-name">원전·에너지 인프라</div>
+      <div class="sector-direction green">3/5~6 강세 반전</div>
+      <div class="sector-bar-wrap">
+        <div class="sector-bar" style="width:75%; background: linear-gradient(90deg, #06b6d4, #0891b2);"></div>
+      </div>
+      <div class="sector-stocks">
+        <strong>두산에너빌리티, 한국전력, 한국가스공사</strong><br>
+        3/6 두산에너빌리티 +4.64%로 시총 상위 상승 1위.<br>
+        에너지 안보 중요성 부각 → 탈중동 원전 수요 기대.<br>
+        <span class="cyan">에너지 전환 테마 재부각</span>
+      </div>
+      <div class="sector-momentum cyan">↑↑</div>
+    </div>
+
+  </div>
+
+  <!-- Bar chart -->
+  <div class="section-title">섹터별 4일 누적 흐름 (정성 평가)</div>
+  <div class="bar-chart">
+    <div class="bar-row">
+      <div class="bar-label">방산</div>
+      <div class="bar-track">
+        <div class="bar-fill" style="width:85%; background: linear-gradient(90deg, #00e87a, #00c060);">+강세</div>
+      </div>
+    </div>
+    <div class="bar-row">
+      <div class="bar-label">원전·에너지인프라</div>
+      <div class="bar-track">
+        <div class="bar-fill" style="width:60%; background: linear-gradient(90deg, #06b6d4, #0891b2);">혼조→반등</div>
+      </div>
+    </div>
+    <div class="bar-row">
+      <div class="bar-label">정유·석화</div>
+      <div class="bar-track">
+        <div class="bar-fill" style="width:55%; background: linear-gradient(90deg, #f5a623, #d97706);">혼조→반등</div>
+      </div>
+    </div>
+    <div class="bar-row">
+      <div class="bar-label">해운 (운임)</div>
+      <div class="bar-track">
+        <div class="bar-fill" style="width:45%; background: linear-gradient(90deg, #f59e0b, #b45309);">불확실</div>
+      </div>
+    </div>
+    <div class="bar-row">
+      <div class="bar-label">금융·보험</div>
+      <div class="bar-track">
+        <div class="bar-fill" style="width:20%; background: linear-gradient(90deg, #6b7280, #4b5563);">약세</div>
+      </div>
+    </div>
+    <div class="bar-row">
+      <div class="bar-label">자동차</div>
+      <div class="bar-track">
+        <div class="bar-fill" style="width:18%; background: linear-gradient(90deg, #6b7280, #374151);">약세</div>
+      </div>
+    </div>
+    <div class="bar-row">
+      <div class="bar-label">반도체·IT</div>
+      <div class="bar-track" style="display:flex; flex-direction: row-reverse;">
+        <div class="bar-fill" style="width:75%; background: linear-gradient(90deg, #dc2626, #b91c1c); color: rgba(255,255,255,0.8);">-급락</div>
+      </div>
+    </div>
+    <div class="bar-row">
+      <div class="bar-label">항공</div>
+      <div class="bar-track" style="display:flex; flex-direction: row-reverse;">
+        <div class="bar-fill" style="width:65%; background: linear-gradient(90deg, #dc2626, #991b1b); color: rgba(255,255,255,0.8);">-급락</div>
+      </div>
+    </div>
+  </div>
+
+  <hr class="divider">
+
+  <!-- 9~13 Strategy -->
+  <div class="section-title">3월 9일~13일 주간 대응전략</div>
+
+  <div class="strategy-grid">
+    <div class="strategy-card attack">
+      <div class="strategy-tag green">OVERWEIGHT · 매수 고려</div>
+      <div class="strategy-title">방산 / 원전 인프라<br>— 구조적 수혜 지속</div>
+      <div class="strategy-items">
+        <div class="strategy-item">한화에어로스페이스·LIG넥스원: 4일 연속 강세 확인. 중동 수출 모멘텀 + UAE 실전 성과가 지속 호재로 작용</div>
+        <div class="strategy-item">두산에너빌리티: 에너지 안보 테마 부각, 3/6 시총 상위 상승 1위. 분봉 상 상승 추세 유효</div>
+        <div class="strategy-item">LIG넥스원: 지정학적 긴장 장기화 시 수주 기대치 상향 여지. 적극 비중 확대 검토</div>
+        <div class="strategy-item">3/12 선물옵션 동시만기일 전후 변동성 확대 구간 활용, 분할 매수</div>
+      </div>
+    </div>
+
+    <div class="strategy-card defend">
+      <div class="strategy-tag amber">NEUTRAL / TIMING · 조건부 관심</div>
+      <div class="strategy-title">정유 / 해운<br>— 모멘텀 있지만 변동성 주의</div>
+      <div class="strategy-items">
+        <div class="strategy-item">에스오일·SK이노베이션: 3/5~6 반등 확인. 유가 $80 이상 유지 시 재고평가이익 기대. 그러나 봉쇄 완화 뉴스 시 급락 위험</div>
+        <div class="strategy-item">HMM: VLCC 운임 급등 수혜, 그러나 우회 비용·보험료 급등 리스크 동시 존재. 단기 트레이딩 관점으로 접근</div>
+        <div class="strategy-item">유가 모니터링 핵심: WTI $85 돌파 시 추가 매수, $75 이탈 시 익절 또는 손절 라인 설정 권고</div>
+        <div class="strategy-item">3/11~13 인터배터리 2026 행사 기간 — 2차전지·에너지 관련주 분위기 연동 가능성</div>
+      </div>
+    </div>
+
+    <div class="strategy-card watch">
+      <div class="strategy-tag blue">MONITOR · 지켜보기</div>
+      <div class="strategy-title">반도체 (삼성·SK하이닉스)<br>— 저가 매수 타이밍 탐색</div>
+      <div class="strategy-items">
+        <div class="strategy-item">코스피 내 가장 큰 시총 비중인 만큼 지수 방향의 핵심. 기본 AI·HBM 성장 스토리 훼손 없음</div>
+        <div class="strategy-item">삼성전자 20만원선 / SK하이닉스 90만원선: 기술적 지지선 확인 구간. 반등 모멘텀 확인 후 진입</div>
+        <div class="strategy-item">유가 안정화(봉쇄 완화 뉴스) 또는 OPEC+ 증산 확대 시 반도체 섹터 빠른 재반등 예상</div>
+        <div class="strategy-item">3/6 외국인 순매도 지속 중 — 외국인 순매수 전환 확인 전까지 비중 유지 권고</div>
+      </div>
+    </div>
+
+    <div class="strategy-card avoid">
+      <div class="strategy-tag red">UNDERWEIGHT · 비중 축소</div>
+      <div class="strategy-title">항공 / 고에너지 소비 제조<br>— 고유가 직격탄 회피</div>
+      <div class="strategy-items">
+        <div class="strategy-item">대한항공·아시아나: 유가 $1 상승 시 연간 수백억 원 추가 부담. 유류할증료 인상 불가피 — 수요 감소 리스크</div>
+        <div class="strategy-item">석유화학 소재 의존도 높은 자동차·타이어·플라스틱 소재주: 원가 상승 반영 시차 존재하나 마진 압박 구조적</div>
+        <div class="strategy-item">신용융자 32.8조 역대 최고 — 반대매매 캐스케이드 위험 상존. 레버리지 포지션 전체 축소 우선</div>
+        <div class="strategy-item">3/12 선물옵션 동시만기일: 포지션 청산 물량 쏟아질 수 있음 — 만기일 당일 직전 포지션 정리 고려</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scenarios -->
+  <div class="section-title" style="margin-top: 48px;">3/9~3/13 시나리오 분석</div>
+  <div class="scenario-block">
+    <div class="scenario-tabs">
+      <button class="scenario-tab scenario-a active" onclick="switchTab('a')">SCENARIO A — 완화</button>
+      <button class="scenario-tab scenario-b" onclick="switchTab('b')">SCENARIO B — 교착</button>
+      <button class="scenario-tab scenario-c" onclick="switchTab('c')">SCENARIO C — 악화</button>
+    </div>
+
+    <div class="scenario-content active" id="tab-a">
+      <div class="scenario-header">
+        <div>
+          <div class="scenario-name green">봉쇄 완화 / 협상 진전</div>
+          <div class="scenario-prob">발생 확률 추정: 25~30%</div>
+        </div>
+        <div>
+          <div class="scenario-range green">5,700~6,000</div>
+          <div class="scenario-range-label">코스피 예상 범위 (pt)</div>
+        </div>
+      </div>
+      <p class="scenario-desc">
+        이란이 외교 채널을 통한 협상 신호를 보내거나, 미 해군 호위 본격화로 통행 재개 소식이 나올 경우.
+        유가 $75 이하 하락 전환 시 반도체·자동차 섹터 급반등, 코스피 6,000선 회복 시도.
+      </p>
+      <div class="scenario-triggers">
+        <div class="trigger-box">
+          <div class="trigger-title">트리거 (발동 조건)</div>
+          <div class="trigger-item">이란 공식 협상 참여 또는 휴전 신호</div>
+          <div class="trigger-item">미 해군 유조선 호위 실효화</div>
+          <div class="trigger-item">WTI $75 이하 하락 전환</div>
+          <div class="trigger-item">외국인 순매수 전환 확인</div>
+        </div>
+        <div class="trigger-box">
+          <div class="trigger-title">전략</div>
+          <div class="trigger-item">반도체·자동차 비중 선제 확대 기회</div>
+          <div class="trigger-item">정유·해운주 익절 타이밍</div>
+          <div class="trigger-item">코스피 5,800 돌파 확인 후 추격 매수</div>
+          <div class="trigger-item">방산주 일부 차익실현 고려</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="scenario-content" id="tab-b">
+      <div class="scenario-header">
+        <div>
+          <div class="scenario-name amber">교착 상태 / 불확실성 지속</div>
+          <div class="scenario-prob">발생 확률 추정: 50~55% (기본 시나리오)</div>
+        </div>
+        <div>
+          <div class="scenario-range amber">5,300~5,700</div>
+          <div class="scenario-range-label">코스피 예상 범위 (pt)</div>
+        </div>
+      </div>
+      <p class="scenario-desc">
+        봉쇄 부분 유지, 산발적 충돌. 유가 $75~$90 박스권.
+        증권가 관망 권고대로 방향성 없는 등락 반복. 섹터별 차별화 장세.
+        3/12 선물옵션 동시만기 변동성이 주요 변수.
+      </p>
+      <div class="scenario-triggers">
+        <div class="trigger-box">
+          <div class="trigger-title">특징</div>
+          <div class="trigger-item">유가 $75~$90 등락 반복</div>
+          <div class="trigger-item">방산·에너지 인프라 지속 아웃퍼폼</div>
+          <div class="trigger-item">반도체·항공 방향성 부재</div>
+          <div class="trigger-item">3/12 만기일 수급 변동성</div>
+        </div>
+        <div class="trigger-box">
+          <div class="trigger-title">전략</div>
+          <div class="trigger-item">방산·에너지 인프라 코어 유지</div>
+          <div class="trigger-item">정유 트레이딩 포지션 유지, 손절 라인 명확화</div>
+          <div class="trigger-item">반도체 관망 (분할매수 소량)</div>
+          <div class="trigger-item">현금 비중 20~30% 유지</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="scenario-content" id="tab-c">
+      <div class="scenario-header">
+        <div>
+          <div class="scenario-name red">봉쇄 강화 / 전면전 확산</div>
+          <div class="scenario-prob">발생 확률 추정: 15~20%</div>
+        </div>
+        <div>
+          <div class="scenario-range red">4,700~5,200</div>
+          <div class="scenario-range-label">코스피 예상 범위 (pt)</div>
+        </div>
+      </div>
+      <p class="scenario-desc">
+        이란 최고국가안보위원회 봉쇄 공식 승인 + 추가 선박 공격, 또는 걸프만 지상전 확산.
+        유가 $100~$120 진입, 신용잔고 반대매매 연쇄, 코스피 5,000선 재붕괴.
+        현대경제연구원 시뮬레이션: 성장률 -0.3%p, 물가 +1.1%p.
+      </p>
+      <div class="scenario-triggers">
+        <div class="trigger-box">
+          <div class="trigger-title">트리거 (경고 신호)</div>
+          <div class="trigger-item">이란 SNSC 공식 봉쇄 승인 선언</div>
+          <div class="trigger-item">WTI $95 돌파</div>
+          <div class="trigger-item">걸프국 (UAE·사우디) 직접 군사 개입</div>
+          <div class="trigger-item">신용융자 반대매매 급증 (일 3천억 초과)</div>
+        </div>
+        <div class="trigger-box">
+          <div class="trigger-title">전략 (리스크 헤지)</div>
+          <div class="trigger-item">전 포지션 30~50% 현금화 선행</div>
+          <div class="trigger-item">방산·정유만 소량 유지</div>
+          <div class="trigger-item">원자재 ETF (유가 추종) 일부 헤지</div>
+          <div class="trigger-item">달러 자산 비중 확대 (환율 방어)</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Key calendar -->
+  <div class="section-title" style="margin-top: 48px;">3월 9~13일 주요 일정 체크리스트</div>
+  <div class="bar-chart">
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px;">
+      <div>
+        <div style="font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 2px; color: var(--text-muted); margin-bottom: 12px;">MACRO EVENTS</div>
+        <div class="strategy-item" style="font-size: 13px; color: var(--text-secondary); margin-bottom: 8px; display: flex; gap: 8px;">
+          <span class="amber">3/12</span> 선물·옵션 동시만기일 — 수급 변동성 최대 구간
+        </div>
+        <div class="strategy-item" style="font-size: 13px; color: var(--text-secondary); margin-bottom: 8px; display: flex; gap: 8px;">
+          <span class="blue">3/11~13</span> 인터배터리 2026 — 2차전지·에너지 테마 촉매
+        </div>
+        <div class="strategy-item" style="font-size: 13px; color: var(--text-secondary); margin-bottom: 8px; display: flex; gap: 8px;">
+          <span class="cyan">미 FOMC 전</span> 금리 인하 기대 / 인플레 우려 재점화 변수
+        </div>
+        <div class="strategy-item" style="font-size: 13px; color: var(--text-secondary); display: flex; gap: 8px;">
+          <span style="color:var(--text-muted)">3월 중</span> IEA 긴급 비축유 방출 결정 여부
+        </div>
+      </div>
+      <div>
+        <div style="font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 2px; color: var(--text-muted); margin-bottom: 12px;">HORMUZ WATCH</div>
+        <div class="strategy-item" style="font-size: 13px; color: var(--text-secondary); margin-bottom: 8px; display: flex; gap: 8px;">
+          <span class="red">매일</span> 이란 SNSC 공식 봉쇄 선언 여부 — 최우선 모니터링
+        </div>
+        <div class="strategy-item" style="font-size: 13px; color: var(--text-secondary); margin-bottom: 8px; display: flex; gap: 8px;">
+          <span class="amber">매일</span> WTI 가격 $75/$85/$100 레벨 돌파 여부
+        </div>
+        <div class="strategy-item" style="font-size: 13px; color: var(--text-secondary); margin-bottom: 8px; display: flex; gap: 8px;">
+          <span class="green">매일</span> OPEC+ 긴급 증산 발표 여부
+        </div>
+        <div class="strategy-item" style="font-size: 13px; color: var(--text-secondary); display: flex; gap: 8px;">
+          <span class="blue">주말</span> 미국 외교 협상 채널 재개 여부
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Disclaimer -->
+  <div class="disclaimer">
+    <div class="disclaimer-title">⚠ 투자 유의사항</div>
+    <div class="disclaimer-text">
+      본 분석은 2026년 3월 3일~6일 실제 발생한 언론 보도 및 시황 데이터에 기반하여 작성된 정보 제공 목적의 자료입니다. 
+      지정학적 리스크는 예측 불가능한 변수가 많으며, 이 분석은 투자 권유가 아닙니다. 
+      모든 투자 결정은 개인의 책임 하에 이루어져야 하며, 전문 금융 자문가와의 상담을 권고합니다. 
+      현재 코스피 신용잔고 32.8조원(역대 최고)으로 반대매매 캐스케이드 리스크가 존재하는 만큼 레버리지 포지션에 특히 유의하시기 바랍니다.
+    </div>
+  </div>
+
+</main>
+
+<script>
+  function switchTab(tab) {
+    // Remove active from all tabs and contents
+    document.querySelectorAll('.scenario-tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.scenario-content').forEach(c => c.classList.remove('active'));
+    
+    // Activate selected
+    document.querySelector('.scenario-' + tab).classList.add('active');
+    document.getElementById('tab-' + tab).classList.add('active');
+  }
+
+  // Animate bars on load
+  window.addEventListener('load', () => {
+    document.querySelectorAll('.bar-fill').forEach(bar => {
+      const w = bar.style.width;
+      bar.style.width = '0%';
+      setTimeout(() => { bar.style.width = w; }, 300);
+    });
+  });
+</script>
+</body>
+</html>
